@@ -6,7 +6,7 @@ put melons in a shopping cart.
 Authors: Joel Burton, Christian Fernandez, Meggie Mahnken, Katie Byers.
 """
 
-from flask import Flask, render_template, redirect, flash
+from flask import Flask, render_template, redirect, flash, session
 import jinja2
 
 import melons
@@ -50,7 +50,7 @@ def show_melon(melon_id):
     Show all info about a melon. Also, provide a button to buy that melon.
     """
 
-    melon = melons.get_by_id("meli")
+    melon = melons.get_by_id(melon_id)
     print(melon)
     return render_template("melon_details.html",
                            display_melon=melon)
@@ -75,7 +75,23 @@ def add_to_cart(melon_id):
     # - flash a success message
     # - redirect the user to the cart page
 
-    return "Oops! This needs to be implemented!"
+    if not "cart" in session:
+        cart = session["cart"] = {}
+    else:
+        cart = session["cart"]
+    # if not melon_id in "cart":
+    #     session["cart"] = {melon_id: 0}
+    
+    cart[melon_id] = cart.get(melon_id, 0) +1
+
+    # session["cart"][melon_id] = session["cart"].get(melon_id, 0) +1
+
+    flash("Successfully added!")
+
+    return redirect("/cart")
+
+
+    # return "Oops! This needs to be implemented!"
 
 
 @app.route("/cart")
@@ -99,8 +115,35 @@ def show_shopping_cart():
     #
     # Make sure your function can also handle the case wherein no cart has
     # been added to the session
+    
+    melon_cart = []
+    order_total = 0
+    cart = session.get("cart", {})
 
-    return render_template("cart.html")
+    cart_items = cart.items()
+    # print("Cart Items = ", cart_items)
+
+    # cart[melon_id] = cart.get(melon_id)
+
+    for melon_id, quantity in cart_items:
+        melon = melons.get_by_id(melon_id)
+        total_price = quantity * melon.price
+        order_total += total_price
+        melon.quantity = quantity
+        melon.total_price = total_price
+        melon_cart.append(melon)
+    
+    # print("This is the cart", melon_cart)
+    # print("This is order total", order_total)
+    
+    return render_template("cart.html", cart=melon_cart, order_total=order_total)
+
+        
+
+
+
+
+    # return render_template("cart.html")
 
 
 @app.route("/login", methods=["GET"])
@@ -141,8 +184,9 @@ def checkout():
 
     # For now, we'll just provide a warning. Completing this is beyond the
     # scope of this exercise.
-
+    
     flash("Sorry! Checkout will be implemented in a future version.")
+    session["cart"] = {}
     return redirect("/melons")
 
 
